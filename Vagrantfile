@@ -1,6 +1,5 @@
 # -*- mode: ruby -*-
 # # vi: set ft=ruby :
-# Vagrantfile pour le TP2 R405
 
 $subnet = "192.168.57"
 $num_dns = 1 #max 9
