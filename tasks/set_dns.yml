@@ -1,0 +1,32 @@
+---
+- name: Suppression manuelle des DNS dans /etc/network/interfaces
+  lineinfile:
+    path: /etc/network/interfaces
+    backup: true
+    regexp: '^dns-nameserver'
+    state: absent
+  register: interfaces_file
+
+- name: Ajout du serveur DNS via un hook dans /etc/dhcp/dhclient.conf
+  blockinfile:
+    path: /etc/dhcp/dhclient.conf
+    backup: true
+    state: present
+    block: |
+      supersede domain-name-servers {{ groups['dns'] | map('extract', hostvars, ['ansible_host']) | join(',') }};
+      supersede domain-name "{{ domaine_lab|default('lab.lan') }}";
+      supersede domain-search "{{ domaine_lab|default('lab.lan') }}";
+  register: dhclient_file
+
+- name: Reboot des serveurs affectes
+  block:
+    - name: Lancement du reboot des serveurs affectes par les modifications DNS
+      reboot:
+        msg: Reboot pour appliquer les modifications DNS
+    - name: Attente du reboot des serveurs
+      wait_for_connection:
+        connect_timeout: 15
+        sleep: 5
+        delay: 5
+        timeout: 600
+  when: interfaces_file is changed or dhclient_file is changed
